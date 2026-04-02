@@ -6,7 +6,7 @@ import threading
 
 class blitzStrike:
     def __init__(self, rawBlitzDict: dict):
-        self.time = rawBlitzDict['time']
+        self.time = rawBlitzDict['time'] #what is time 0?
         self.lat = rawBlitzDict['lat']
         self.long = rawBlitzDict['lon']
         self.altitude = rawBlitzDict['alt']
@@ -20,6 +20,12 @@ class blitzStrike:
         self.delay = rawBlitzDict['delay']
         self.lonc = rawBlitzDict['lonc']
         self.latc = rawBlitzDict['latc']
+        #will be used later to store distance from configured location
+        self.distFromUser = None
+    
+    @property
+    def loc(self):
+        return [self.lat, self.long]
 
 class blitz:
     def __init__(self, dataQueue: Queue):
