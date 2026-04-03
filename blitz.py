@@ -32,30 +32,38 @@ class blitz:
         self.logger = logging.getLogger("Blitz_Interface")
         self.dataQueue = dataQueue
 
-    '''
-    Establish connection with Blitzortung via ws and emit processed json objects
-    '''
     def listen(self):
+        '''
+        Establish connection with Blitzortung via ws and emit processed json objects
+        '''
         #connection to blitz
         #TODO: add multiple attempts to different servers
         self.logger.info("Connecting to Blitzortung")
-        #TODO: add some protection here if the ws closes on us
-        with connect("wss://ws1.blitzortung.org/") as ws:
-            if self.informBlitz(ws):
-                while ws:
-                    msg = ws.recv()
-                    self.dataQueue.put(blitzStrike(self.decodeBlitz(msg)))
-                    #print(msg)
-        #print data
-        #on message process json and insert into queue
+        #TODO: should probably have a way to stop this from outside the thread
+        while True:
+            try:
+                with connect("wss://ws1.blitzortung.org?connect_onfocus=0") as ws:
+                    if self.informBlitz(ws):
+                        while ws:
+                            msg = ws.recv()
+                            msg = self.decodeBlitz(msg)
+                            if msg == None:
+                                self.logger.error("Could not decode blitzortung message correctly")
+                            else:
+                                self.dataQueue.put(blitzStrike())
+                            #print(msg)
+                    else: #assumption that something went wrong with the URL
+                        self.logger.error("Could start communication with Blitzortung")
+            except Exception as e:
+                self.logger.error(e)
     
-    '''
-    Send opening information to Bliz about what info we would like to recieve
-
-    returns success or failure of sending opening data
-    '''
     def informBlitz(self, ws: ClientConnection) -> bool:
-        opener = {'a':111}
+        '''
+        Send opening information to Bliz about what info we would like to recieve
+
+        returns success or failure of sending opening data
+        '''
+        opener = {'a':111} #not sure exactly what this is supposed to be but thats what the website sends
         try:
             ws.send(json.dumps(opener))
             return True
@@ -63,16 +71,17 @@ class blitz:
             self.logger.error(e)
             return False
         
-    '''
-    Decode JSON data sent by Blitz into object
-    '''
-    def decodeBlitz(self, rawMsg: str) -> blitzStrike:
+    def decodeBlitz(self, rawMsg: str) -> dict:
+        '''
+        Decode JSON data sent by Blitz into object
+        '''
         try:
             encodeChar1 = rawMsg[0]
             encodeChar2 = rawMsg[0]
             encodeCharDict = {}
             dictIndex = 256
             deobfStr = rawMsg[0]
+            #have to iterate through char by char to decode?
             for aChar in rawMsg[1:]:
                 charA = ord(aChar)
                 if charA >= 256:
@@ -89,11 +98,12 @@ class blitz:
         except Exception as e:
             self.logger.error(e)
             return None
-        
-    def processRawLocation(self, rawMsg):
-        pass
 
 def startBlitz(dataQueue: Queue):
+    '''
+    Interface for blitz object for use in threading
+    Initializes blitz object and starts it
+    '''
     a = blitz(dataQueue)
     a.listen()
 
