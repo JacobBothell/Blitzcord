@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-RUN apt-get update && apt-get install wget git
+RUN apt-get update && apt-get install -y wget git
 
 RUN git clone https://github.com/JacobBothell/Blitzcord.git /app
 WORKDIR /app
