@@ -30,4 +30,4 @@ jobs:
       uses: docker/build-push-action@v7.2.0
       with:
        push: true
-       tags: ${{ vars.DOCKERHUB_USERNAME }}/Blitzcord:latest
+       tags: ${{ vars.DOCKERHUB_USERNAME }}/blitzcord:latest
