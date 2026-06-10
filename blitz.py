@@ -50,7 +50,7 @@ class blitz:
                             if msg == None:
                                 self.logger.error("Could not decode blitzortung message correctly")
                             else:
-                                self.dataQueue.put(blitzStrike())
+                                self.dataQueue.put(blitzStrike(msg))
                             #print(msg)
                     else: #assumption that something went wrong with the URL
                         self.logger.error("Could start communication with Blitzortung")
