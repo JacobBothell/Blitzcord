@@ -1,0 +1,8 @@
+[
+    {
+        "name": "YourServerName",
+        "lat": 12.232 <monitor location latituede>,
+        "long": 33.12 <monitor location longitude>,
+        "notifyDistance": 10 <distance circle around location to recieved notices>
+    }
+]
