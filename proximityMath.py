@@ -1,14 +1,37 @@
 from queue import Queue
 from blitz import blitzStrike
 import numpy as np
+import numpy.typing as npt
 from geopy import distance
+from typing import Callable
+
+class proximityLocation():
+    def __init__(self, name: str, lat: float, long: float, notifyDistance: float):
+        self.name = name
+        self.lat = lat
+        self.long = long
+        self.notifyDistance = notifyDistance
+        #below used by the discord bot
+        self.strikeDistance = None
+        self.reactionCounter = 0
+    @property
+    def loc(self) -> npt.NDArray[np.float64]:
+        '''
+        Returns lat, long in numpy array
+        '''
+        return np.array([self.lat,self.long])
+    def setStrikeDistance(self, dist: float):
+        '''
+        sets object lightning strike distance param and returns object
+        '''
+        self.strikeDistance = dist
+        return self
 
 class proximityMath:
-    def __init__(self, locLat: float, locLong: float, notifyDistance: float, strikeQueue: Queue, discordQueue: Queue):
-        self.loc = np.array([locLat, locLong])
+    def __init__(self, locations: list[proximityLocation], strikeQueue: Queue, callbacks: list[Callable]):
+        self.locations = locations
         self.strikeQueue = strikeQueue
-        self.notifyDistance = notifyDistance
-        self.discordQueue = discordQueue
+        self.callbacks = callbacks
 
     '''
     Proximity checker begins watching Strike queue and calcs the distances
@@ -19,18 +42,20 @@ class proximityMath:
             item = self.strikeQueue.get()
             if type(item) == blitzStrike:
                 strike = item
-                #calc lat long distance in miles
-                distance_miles = distance.distance(self.loc, strike.loc).miles
-                #compare to distance handed in
-                if distance_miles <= self.notifyDistance:
-                    strike.distFromUser = distance_miles
-                    #send to discord queue
-                    self.discordQueue.put(blitzStrike)
+                #calc lat long distances in miles
+                for loc in self.locations:
+                    loc.setStrikeDistance(distance.distance(loc.loc, strike.loc).miles)
+                #compare to distance in object
+                places_needing_notify = [loc for loc in self.locations if loc.notifyDistance >= loc.strikeDistance]
+                if len(places_needing_notify) > 0:
+                    for call in self.callbacks:
+                        call(places_needing_notify)
 
-def proxyStart(locLat: float, locLong: float, notifyDistance: float, strikeQueue: Queue, discordQueue: Queue):
+
+def proxyStart(locations: list[proximityLocation], strikeQueue: Queue, callbacks: list[Callable]):
     #bermuda 'home'
     #32.38569, -64.781278
-    a = proximityMath(locLat=locLat, locLong=locLong, notifyDistance=notifyDistance, strikeQueue=strikeQueue, discordQueue=discordQueue)
+    a = proximityMath(locations, strikeQueue=strikeQueue, callbacks=callbacks)
     a.start()
 
 
@@ -38,10 +63,13 @@ if __name__ == "__main__":
     from time import sleep
     import threading
 
-    strikeQueue = Queue()
-    discordQueue = Queue()
+    def testing_callback(location: proximityLocation):
+        for loc in location:
+            print(f'Recieved location {loc.name} with strike distance of {loc.strikeDistance}')
 
-    proxyThread = threading.Thread(target=proxyStart, kwargs={"locLat":32.38569, "locLong":-64.781278, "notifyDistance":5, "strikeQueue":strikeQueue, "discordQueue":discordQueue}, daemon=True)
+    strikeQueue = Queue()
+
+    proxyThread = threading.Thread(target=proxyStart, kwargs={"locations":[proximityLocation("home",32.38569,-64.781278,5)], "strikeQueue":strikeQueue, "callbacks":[testing_callback]}, daemon=True)
     proxyThread.start()
 
     sleep(4)
