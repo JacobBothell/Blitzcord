@@ -38,7 +38,7 @@ def setupDiscordCall(secret, cooldown) -> tuple[Thread, Callable]:
     return (discordThread, client.notify_of_strike_wrapper)
 
 if __name__ == "__main__":
-    dotValues = dotenv_values(".env")
+    dotValues = dotenv_values("./config/.env")
 
     locations = loadJsonLocations(dotValues['LOCATIONS_JSON'])
 
