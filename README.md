@@ -42,3 +42,10 @@ Each entry needs the following info:
   - longitude of location to monitor
 - notifyDistance
   - radius around the provided lat/long to consider for strikes
+
+## Docker Image
+There is a docker image of this project available on docker hub (Blitzcord)[https://hub.docker.com/r/jacobbothell/blitzcord] as jacobbothell/blitzcord. To run the image it will need a volume with the appropriate configs from above mounted to `/app/config`.
+
+```bash
+docker run --mount type=bind,src=<YOUR-CONFIG-FILE-LOCATION>,target=/app/config jacobbothell/blitzcord:latest
+```
