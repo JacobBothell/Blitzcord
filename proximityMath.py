@@ -6,6 +6,7 @@ import math
 from geopy import distance
 from typing import Callable
 from datetime import datetime, timezone
+import logging
 
 class proximityLocation():
     def __init__(self, name: str, lat: float, long: float, notifyDistance: float):
@@ -63,10 +64,12 @@ class proximityMath:
         #compare to distance in object
         places_needing_notify = [loc for loc in self.locations if loc.notifyDistance >= loc.strikeDistance]
 
-        if len(places_needing_notify) > 0:
         #check previous notifications
-            #perform dist exponential calc
+        #perform dist exponential calc
+        if len(places_needing_notify) > 0:
             places_needing_notify = [loc for loc in places_needing_notify if loc.lastNotifyStrikeDistance*(math.e**(0.05*((datetime.now(timezone.utc)-loc.lastNotifyStrikeTime).seconds/60))) > loc.strikeDistance]
+            if len(places_needing_notify) > 0:
+                logging.info(f'Sending notifications to {[loc.name for loc in places_needing_notify]}')
 
         return places_needing_notify
 

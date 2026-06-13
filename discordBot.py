@@ -76,6 +76,7 @@ class BlitzcordBot(discord.Client):
                 #if cooldown has expired make a new post
                 if chan.guild.name in self.guild_notifications and (datetime.now(timezone.utc) - self.guild_notifications[chan.guild.name]).seconds >= self.notification_cooldown*60:
                     try:
+                        self.logger.info(f"Creating post in {chan.guild.name}")
                         await chan.send(f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
                     except Exception as e:
                         self.logger.error(f'Error when posting new message in server {chan.guild.name} - {e}')
@@ -94,6 +95,7 @@ class BlitzcordBot(discord.Client):
                             dst_growth = msg_distance*(math.e**(0.05*time_diff))
                             if math.floor(strike.lastNotifyStrikeDistance) < msg_distance or (math.floor(strike.lastNotifyStrikeDistance) > msg_distance and math.floor(strike.lastNotifyStrikeDistance) < dst_growth):
                                 try:
+                                    self.logger.info(f"Updating post in {chan.guild.name}")
                                     await msg.edit(content=f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
                                 except Exception as e:
                                     self.logger.error(f'Error when trying to update discord message in server {chan.guild.name} - e')
