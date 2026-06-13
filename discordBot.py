@@ -74,7 +74,7 @@ class BlitzcordBot(discord.Client):
             for chan, strike in chan_iter:
                 #if cooldown has expired make a new post
                 if chan.guild.name in self.guild_notifications and (datetime.now(timezone.utc) - self.guild_notifications[chan.guild.name]).seconds >= self.notification_cooldown*60:
-                    await chan.send(f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.strikeDistance)} miles')
+                    await chan.send(f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
                 #if it has not expired update the last post
                 else:
                     async for msg in chan.history(limit=10):
@@ -82,11 +82,15 @@ class BlitzcordBot(discord.Client):
                             #quick little math that keeps the closest one and slowly allows it to move away
                             #example content  '<t:1780982042>   Lightning strike within 48 miles'
                             msg_distance = int(msg.content.split(" ")[-2])
-                            time_diff = (datetime.now(timezone.utc) - msg.edited_at).seconds / 60
+                            if msg.edited_at:
+                                msg_time = msg.edited_at
+                            else:
+                                msg_time = msg.created_at
+                            time_diff = (datetime.now(timezone.utc) - msg_time).seconds / 60
                             dst_growth = msg_distance*(math.e**(0.05*time_diff))
-                            if math.floor(strike.strikeDistance) < msg_distance or (math.floor(strike.strikeDistance) > msg_distance and math.floor(strike.strikeDistance) < dst_growth):
-                                await msg.edit(content=f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.strikeDistance)} miles')
-                                percent_change = (msg_distance-math.floor(strike.strikeDistance)) / msg_distance
+                            if math.floor(strike.lastNotifyStrikeDistance) < msg_distance or (math.floor(strike.lastNotifyStrikeDistance) > msg_distance and math.floor(strike.lastNotifyStrikeDistance) < dst_growth):
+                                await msg.edit(content=f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
+                                percent_change = (msg_distance-math.floor(strike.lastNotifyStrikeDistance)) / msg_distance
                                 #add reaction if strike comes 30% closer
                                 if percent_change > 0.3 and percent_change > 0:
                                     await msg.add_reaction("⚡")
