@@ -32,7 +32,7 @@ class BlitzcordBot(discord.Client):
             if type(l_chan) == discord.TextChannel:
                 self.notification_channels.append(l_chan)
 
-        await self.get_last_notify(guild)
+        await self.get_last_notify()
 
     async def get_last_notify(self):
         for chan in self.notification_channels:
