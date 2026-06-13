@@ -4,6 +4,7 @@ from dotenv import dotenv_values
 import os
 import numpy as np
 import json
+import logging
 
 import asyncio
 from threading import Thread
@@ -32,7 +33,7 @@ def setupDiscordCall(secret, cooldown) -> tuple[Thread, Callable]:
 
     client = discordBot.BlitzcordBot(intents=intents, cool_down=cooldown)
 
-    discordThread = Thread(target = discordBot.run_bot_in_thread, args=(client, secret, loop), daemon=True)
+    discordThread = Thread(target = discordBot.run_bot_in_thread, args=(client, secret, loop), name="Discord_Bot", daemon=True)
     discordThread.start()
 
     return (discordThread, client.notify_of_strike_wrapper)
@@ -42,11 +43,13 @@ if __name__ == "__main__":
 
     locations = loadJsonLocations(dotValues['LOCATIONS_JSON'])
 
+    logging.basicConfig(level=logging.INFO, format='%(relativeCreated)6d %(threadName)s %(message)s')
+
     strikeQueue = Queue()
 
     discordThread, discordCallback = setupDiscordCall(dotValues['DISCORD_SECRET'], dotValues['DISCORD_COOLDOWN'])
-    BlitzThread = threading.Thread(target=blitz.startBlitz, kwargs={"dataQueue":strikeQueue}, daemon=True)
-    ProxyQueue = threading.Thread(target=proximityMath.proxyStart, kwargs={"locations":locations, "strikeQueue":strikeQueue, "callbacks":[discordCallback]}, daemon=True)
+    BlitzThread = threading.Thread(target=blitz.startBlitz, kwargs={"dataQueue":strikeQueue}, name="Blitzortung_Interface", daemon=True)
+    ProxyQueue = threading.Thread(target=proximityMath.proxyStart, kwargs={"locations":locations, "strikeQueue":strikeQueue, "callbacks":[discordCallback]}, name="Proxy_Math", daemon=True)
 
     BlitzThread.start()
     ProxyQueue.start()
