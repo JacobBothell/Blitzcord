@@ -38,7 +38,7 @@ class BlitzcordBot(discord.Client):
     async def get_last_notify(self):
         for chan in self.notification_channels:
             #fill with default value
-            self.guild_notifications[chan.guild.name] = datetime.now(timezone.utc) - timedelta(days=1)
+            self.guild_notifications[chan.guild.name] = datetime.now(timezone.utc)
             async for msg in chan.history(limit=50):
                 if msg.author.id == self.user.id:
                     self.guild_notifications[chan.guild.name] = msg.created_at
@@ -74,40 +74,43 @@ class BlitzcordBot(discord.Client):
 
             for chan, strike in chan_iter:
                 #if cooldown has expired make a new post
-                if chan.guild.name in self.guild_notifications and (datetime.now(timezone.utc) - self.guild_notifications[chan.guild.name]).seconds >= self.notification_cooldown*60:
-                    try:
-                        self.logger.info(f"Creating post in {chan.guild.name}")
-                        await chan.send(f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
-                    except Exception as e:
-                        self.logger.error(f'Error when posting new message in server {chan.guild.name} - {e}')
-                #if it has not expired update the last post
-                else:
-                    async for msg in chan.history(limit=10):
-                        if msg.author.id == self.user.id:
-                            #quick little math that keeps the closest one and slowly allows it to move away
-                            #example content  '<t:1780982042>   Lightning strike within 48 miles'
-                            msg_distance = int(msg.content.split(" ")[-2])
-                            if msg.edited_at:
-                                msg_time = msg.edited_at
-                            else:
-                                msg_time = msg.created_at
-                            time_diff = (datetime.now(timezone.utc) - msg_time).seconds / 60
-                            dst_growth = msg_distance*(math.e**(0.05*time_diff))
-                            if math.floor(strike.lastNotifyStrikeDistance) < msg_distance or (math.floor(strike.lastNotifyStrikeDistance) > msg_distance and math.floor(strike.lastNotifyStrikeDistance) < dst_growth):
-                                try:
-                                    self.logger.info(f"Updating post in {chan.guild.name}")
-                                    await msg.edit(content=f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
-                                except Exception as e:
-                                    self.logger.error(f'Error when trying to update discord message in server {chan.guild.name} - e')
-                                percent_change = (msg_distance-math.floor(strike.lastNotifyStrikeDistance)) / msg_distance
-                                #add reaction if strike comes 30% closer
-                                if percent_change > 0.3 and percent_change > 0:
-                                    await msg.add_reaction("⚡")
-                                    strike.reactionCounter += 1
-                                #remove it after a few strikes so we can use that notification again
-                                if strike.reactionCounter >= 5:
-                                    await msg.remove_reaction("⚡", self.user.id)
-                            break
+                try:
+                    if chan.guild.name in self.guild_notifications and (datetime.now(timezone.utc) - self.guild_notifications[chan.guild.name]).seconds >= self.notification_cooldown*60:
+                        try:
+                            self.logger.info(f"Creating post in {chan.guild.name}")
+                            await chan.send(f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
+                        except Exception as e:
+                            self.logger.error(f'Error when posting new message in server {chan.guild.name} - {e}')
+                    #if it has not expired update the last post
+                    else:
+                        async for msg in chan.history(limit=10):
+                            if msg.author.id == self.user.id:
+                                #quick little math that keeps the closest one and slowly allows it to move away
+                                #example content  '<t:1780982042>   Lightning strike within 48 miles'
+                                msg_distance = int(msg.content.split(" ")[-2])
+                                if msg.edited_at:
+                                    msg_time = msg.edited_at
+                                else:
+                                    msg_time = msg.created_at
+                                time_diff = (datetime.now(timezone.utc) - msg_time).seconds / 60
+                                dst_growth = msg_distance*(math.e**(0.05*time_diff))
+                                if math.floor(strike.lastNotifyStrikeDistance) < msg_distance or (math.floor(strike.lastNotifyStrikeDistance) > msg_distance and math.floor(strike.lastNotifyStrikeDistance) < dst_growth):
+                                    try:
+                                        self.logger.info(f"Updating post in {chan.guild.name}")
+                                        await msg.edit(content=f'<t:{math.floor(datetime.now().timestamp())}>   Lightning strike within {math.floor(strike.lastNotifyStrikeDistance)} miles')
+                                    except Exception as e:
+                                        self.logger.error(f'Error when trying to update discord message in server {chan.guild.name} - e')
+                                    percent_change = (msg_distance-math.floor(strike.lastNotifyStrikeDistance)) / msg_distance
+                                    #add reaction if strike comes 30% closer
+                                    if percent_change > 0.3 and percent_change > 0:
+                                        await msg.add_reaction("⚡")
+                                        strike.reactionCounter += 1
+                                    #remove it after a few strikes so we can use that notification again
+                                    if strike.reactionCounter >= 5:
+                                        await msg.remove_reaction("⚡", self.user.id)
+                                break
+                except Exception as e:
+                    self.logger.error(f'Error in notify_of_strike - {e}')
 
                 self.guild_notifications[chan.guild.name] = datetime.now(timezone.utc)
     
