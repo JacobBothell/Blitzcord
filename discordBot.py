@@ -39,10 +39,14 @@ class BlitzcordBot(discord.Client):
         for chan in self.notification_channels:
             #fill with default value
             self.guild_notifications[chan.guild.name] = datetime.now(timezone.utc)
+            found = False
             async for msg in chan.history(limit=50):
                 if msg.author.id == self.user.id:
+                    self.logger.info(f'Found previous post in {chan.guild.name} at {msg.created_at}')
                     self.guild_notifications[chan.guild.name] = msg.created_at
                     break
+            if not found:
+                self.logger.info(f'Last notification not found on {chan.guild.name}')
 
     async def get_create_guild_lightning_channel(self, guild: discord.Guild) -> None | discord.TextChannel: 
         lightning_channels = [chan for chan in guild.text_channels if chan.name=="lightning"]
@@ -83,6 +87,7 @@ class BlitzcordBot(discord.Client):
                             self.logger.error(f'Error when posting new message in server {chan.guild.name} - {e}')
                     #if it has not expired update the last post
                     else:
+                        self.logger.info(f'Previous post already found in {chan.guild.name}. checking if needs update.')
                         async for msg in chan.history(limit=10):
                             if msg.author.id == self.user.id:
                                 #quick little math that keeps the closest one and slowly allows it to move away
@@ -108,6 +113,8 @@ class BlitzcordBot(discord.Client):
                                     #remove it after a few strikes so we can use that notification again
                                     if strike.reactionCounter >= 5:
                                         await msg.remove_reaction("⚡", self.user.id)
+                                else:
+                                    self.logger(f'Not posting to {chan.guld.name} - msg_dist: {msg_distance} - last notify dist: {strike.lastNotifyStrikeDistance} - Dist Growth: {dst_growth}')
                                 break
                 except Exception as e:
                     self.logger.error(f'Error in notify_of_strike - {e}')
